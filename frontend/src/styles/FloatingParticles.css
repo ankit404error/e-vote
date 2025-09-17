@@ -1,0 +1,56 @@
+/* Floating Particles Effect */
+.floating-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.2) 70%, transparent 100%);
+  border-radius: 50%;
+  animation: float infinite linear;
+  opacity: 0.6;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.particle:nth-child(2n) {
+  background: radial-gradient(circle, rgba(79, 172, 254, 0.6) 0%, rgba(79, 172, 254, 0.1) 70%, transparent 100%);
+  animation-direction: reverse;
+}
+
+.particle:nth-child(3n) {
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.5) 0%, rgba(0, 242, 254, 0.1) 70%, transparent 100%);
+  animation-delay: 2s;
+}
+
+.particle:nth-child(4n) {
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0.1) 70%, transparent 100%);
+  animation-duration: 25s;
+}
+
+.particle:nth-child(5n) {
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.3) 0%, rgba(138, 43, 226, 0.1) 70%, transparent 100%);
+  animation-duration: 15s;
+}
