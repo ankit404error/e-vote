@@ -86,29 +86,66 @@ const Voting = () => {
     setError('')
 
     try {
-      // Cast anonymous vote
-      const response = await fetch('/api/voting/cast', {
+      // Generate OACT token for enhanced security
+      const timestamp = Date.now()
+      const randomBytes = crypto.getRandomValues(new Uint8Array(16))
+      const randomHex = Array.from(randomBytes, byte => 
+        byte.toString(16).padStart(2, '0')
+      ).join('')
+      const oactToken = `OACT_${timestamp}_${randomHex}`
+      
+      console.log('🗳️ Casting enhanced vote...')
+      
+      // Try enhanced voting endpoint first
+      let response = await fetch('/api/enhanced/cast-vote', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          candidateId: selectedCandidate.id,
-          userId: user.id, // Only for marking as voted, not linked to vote
+          token: oactToken,
+          candidate: selectedCandidate.name,
+          userId: user.id,
+          candidateId: selectedCandidate.id
         }),
       })
-
-      const data = await response.json()
+      
+      let data = await response.json()
+      
+      // If enhanced endpoint fails, fall back to original
+      if (!response.ok && response.status !== 200) {
+        console.warn('Enhanced endpoint failed, trying fallback...')
+        response = await fetch('/api/voting/cast', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            candidateId: selectedCandidate.id,
+            candidateName: selectedCandidate.name,
+            userId: user.id,
+          }),
+        })
+        data = await response.json()
+      }
 
       if (data.success) {
         setTransactionHash(data.transactionHash)
         setVoteComplete(true)
         setHasAlreadyVoted(true)
+        
+        console.log('✅ Vote cast successfully:', {
+          candidate: selectedCandidate.name,
+          txHash: data.transactionHash,
+          blockNumber: data.blockNumber,
+          source: data.source || 'Enhanced Blockchain'
+        })
       } else {
-        setError(data.message || 'Failed to cast vote')
+        setError(data.error || data.message || 'Failed to cast vote')
       }
     } catch (error) {
-      setError('Network error while casting vote')
+      console.error('❌ Voting error:', error)
+      setError('Network error while casting vote: ' + error.message)
     } finally {
       setVoting(false)
     }

@@ -63,10 +63,26 @@ const Results = () => {
     }
     
     try {
-      const response = await fetch('/api/blockchain/results')
-      const data = await response.json()
+      console.log('📊 Fetching enhanced election results...')
+      
+      // Try enhanced endpoint first, fall back to original
+      let response = await fetch('/api/enhanced/results')
+      let data = await response.json()
+      
+      // If enhanced endpoint fails, use original
+      if (!response.ok || !data.success) {
+        console.warn('Enhanced results endpoint failed, trying fallback...')
+        response = await fetch('/api/blockchain/results')
+        data = await response.json()
+      }
       
       if (data.success) {
+        console.log('✅ Results loaded:', {
+          totalVotes: data.results.totalVotes,
+          candidates: data.results.candidates?.length || 0,
+          source: data.source || 'Enhanced Blockchain'
+        })
+        
         // Add animation transition
         if (!loading) {
           const oldCandidates = [...candidates]
@@ -74,7 +90,7 @@ const Results = () => {
           // Update data with smooth transitions
           setTimeout(() => {
             setResults(data.results)
-            setCandidates(data.results.candidates)
+            setCandidates(data.results.candidates || [])
             setError('')
             setLastUpdated(new Date())
             
@@ -86,16 +102,18 @@ const Results = () => {
           }, userTriggered ? 400 : 0)
         } else {
           setResults(data.results)
-          setCandidates(data.results.candidates)
+          setCandidates(data.results.candidates || [])
           setError('')
           setLastUpdated(new Date())
         }
       } else {
-        setError('Failed to load results')
+        const errorMsg = data.error || data.message || 'Failed to load results'
+        console.error('❌ Results loading failed:', errorMsg)
+        setError(`Failed to load results: ${errorMsg}`)
       }
     } catch (error) {
-      setError('Network error while loading results')
-      console.error('Results loading error:', error)
+      console.error('❌ Network error loading results:', error)
+      setError('Network error while loading results: ' + error.message)
     } finally {
       setLoading(false)
     }

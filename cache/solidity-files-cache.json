@@ -1,19 +1,18 @@
-<<<<<<< HEAD
 {
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\pande\\OneDrive\\Desktop\\E-Vote\\contracts\\EVoting.sol": {
-      "lastModificationDate": 1758125380806,
+      "lastModificationDate": 1758131325403,
       "contentHash": "e0a660c0fb57f06f59ebb11561279521",
       "sourceName": "contracts/EVoting.sol",
       "solcConfig": {
         "version": "0.8.28",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -39,17 +38,17 @@
       ]
     },
     "C:\\Users\\pande\\OneDrive\\Desktop\\E-Vote\\contracts\\Lock.sol": {
-      "lastModificationDate": 1758082624168,
-      "contentHash": "7eee587c347fe6b1de50c96688cb9477",
+      "lastModificationDate": 1758131325403,
+      "contentHash": "642fa52ab63153524e2438211810ea7e",
       "sourceName": "contracts/Lock.sol",
       "solcConfig": {
         "version": "0.8.28",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -73,25 +72,19 @@
       "artifacts": [
         "Lock"
       ]
-    }
-  }
-}
-||||||| empty tree
-=======
-{
-  "_format": "hh-sol-cache-2",
-  "files": {
-    "C:\\Users\\aryxn\\Desktop\\ev\\secure-voting-booth\\contracts\\SecureVoting.sol": {
-      "lastModificationDate": 1758090384926,
+    },
+    "C:\\Users\\pande\\OneDrive\\Desktop\\E-Vote\\contracts\\SecureVoting.sol": {
+      "lastModificationDate": 1758131449313,
       "contentHash": "439b0d68eb5a890b6a8bd8cdc8f821ed",
       "sourceName": "contracts/SecureVoting.sol",
       "solcConfig": {
-        "version": "0.8.19",
+        "version": "0.8.28",
         "settings": {
           "optimizer": {
             "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -118,4 +111,3 @@
     }
   }
 }
->>>>>>> master
