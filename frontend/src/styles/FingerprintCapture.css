@@ -1,0 +1,361 @@
+/* FingerprintCapture Styles - Professional Dark Theme */
+.fingerprint-capture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2.5rem 2rem;
+  background: rgba(51, 65, 85, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 24px;
+  margin: 0;
+  max-width: 100%;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.capture-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  text-align: center;
+  width: 100%;
+}
+
+.fingerprint-scanner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.6);
+  border: 3px solid rgba(100, 116, 139, 0.4);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    inset 0 2px 12px rgba(148, 163, 184, 0.1),
+    inset 0 -2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fingerprint-capture.ready .fingerprint-scanner {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(71, 85, 105, 0.4);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    inset 0 2px 12px rgba(148, 163, 184, 0.2),
+    inset 0 -2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.fingerprint-capture.capturing .fingerprint-scanner {
+  border-color: rgba(34, 197, 94, 0.8);
+  background: rgba(34, 197, 94, 0.15);
+  animation: pulse 2s infinite;
+  box-shadow: 
+    0 0 30px rgba(34, 197, 94, 0.4),
+    0 8px 25px rgba(34, 197, 94, 0.2),
+    inset 0 2px 12px rgba(34, 197, 94, 0.1),
+    inset 0 -2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fingerprint-capture.success .fingerprint-scanner {
+  border-color: rgba(34, 197, 94, 1);
+  background: rgba(34, 197, 94, 0.2);
+  box-shadow: 
+    0 0 35px rgba(34, 197, 94, 0.5),
+    0 8px 25px rgba(34, 197, 94, 0.3),
+    inset 0 2px 12px rgba(34, 197, 94, 0.2),
+    inset 0 -2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fingerprint-capture.error .fingerprint-scanner {
+  border-color: rgba(248, 113, 113, 0.8);
+  background: rgba(248, 113, 113, 0.15);
+  box-shadow: 
+    0 0 30px rgba(248, 113, 113, 0.4),
+    0 8px 25px rgba(248, 113, 113, 0.2),
+    inset 0 2px 12px rgba(248, 113, 113, 0.1),
+    inset 0 -2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.scanner-ring {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: all 0.5s ease;
+}
+
+.fingerprint-capture.capturing .scanner-ring {
+  border-color: #22c55e;
+  animation: ringPulse 2s infinite;
+}
+
+.fingerprint-capture.success .scanner-ring {
+  border-color: #22c55e;
+}
+
+.fingerprint-capture.error .scanner-ring {
+  border-color: #f87171;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes ringPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.fingerprint-icon {
+  color: #94a3b8;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.fingerprint-capture.capturing .fingerprint-icon {
+  color: #22c55e;
+  filter: drop-shadow(0 2px 8px rgba(34, 197, 94, 0.4));
+}
+
+.fingerprint-capture.success .success-icon {
+  color: #22c55e;
+  filter: drop-shadow(0 2px 8px rgba(34, 197, 94, 0.4));
+}
+
+.fingerprint-capture.error .error-icon {
+  color: #f87171;
+  filter: drop-shadow(0 2px 8px rgba(248, 113, 113, 0.4));
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.capture-info h3 {
+  color: #f8fafc;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.status-message {
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  margin: 0;
+  max-width: 400px;
+  font-weight: 500;
+  line-height: 1.6;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Override colors for register mode (when used in Register page) */
+.register-container .capture-info h3 {
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.register-container .status-message {
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  font-weight: 600 !important;
+}
+
+.fingerprint-capture.capturing .status-message {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.fingerprint-capture.success .status-message {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.fingerprint-capture.error .status-message {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.capture-button {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 200px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.capture-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.capture-button:hover::before {
+  left: 100%;
+}
+
+.capture-button:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(34, 197, 94, 0.4);
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.retry-button {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: none;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.retry-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+
+/* Add subtle glow effects */
+.fingerprint-capture::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
+}
+
+.fingerprint-scanner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.fingerprint-capture.capturing .fingerprint-scanner::after {
+  opacity: 1;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.3;
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fingerprint-capture {
+    padding: 2rem 1.5rem;
+    min-height: 350px;
+  }
+
+  .fingerprint-scanner {
+    width: 120px;
+    height: 120px;
+  }
+
+  .capture-info h3 {
+    font-size: 1.5rem;
+  }
+
+  .status-message {
+    font-size: 1rem;
+  }
+
+  .capture-button {
+    min-width: 180px;
+    padding: 0.875rem 1.75rem;
+    font-size: 0.95rem;
+  }
+
+  .retry-button {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fingerprint-capture {
+    padding: 1.5rem 1rem;
+    min-height: 320px;
+  }
+  
+  .fingerprint-scanner {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .capture-info h3 {
+    font-size: 1.25rem;
+  }
+  
+  .capture-button {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+
