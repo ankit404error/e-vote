@@ -4,7 +4,6 @@ import Register from './components/Register'
 import Verify from './components/Verify'
 import Voting from './components/Voting'
 import Results from './components/Results'
-import AdminPanel from './components/AdminPanel'
 import ReceiptVerification from './components/ReceiptVerification'
 import './App.css'
 
@@ -18,7 +17,6 @@ function App() {
           <Route path="/verify" element={<Verify />} />
           <Route path="/voting" element={<Voting />} />
           <Route path="/results" element={<Results />} />
-          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/receipt" element={<ReceiptVerification />} />
         </Routes>
       </div>

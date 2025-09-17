@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -32,7 +33,7 @@ blockchainUtils.initialize().then(success => {
 });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Initialize database
 const db = new Database();
@@ -98,6 +99,29 @@ app.post('/api/cast-vote', async (req, res) => {
             });
         }
         
+        // Check if user has already voted (if userId provided)
+        if (userId) {
+            const votingStatusCheck = await new Promise((resolve) => {
+                db.checkVotingStatus(userId, (err, result) => {
+                    if (err) {
+                        resolve({ hasVoted: false }); // Allow vote if can't check status
+                    } else {
+                        resolve(result);
+                    }
+                });
+            });
+            
+            if (votingStatusCheck.hasVoted) {
+                console.log(`⚠️ User ${userId} attempted to vote again via cast-vote endpoint`);
+                return res.status(400).json({
+                    success: false,
+                    message: 'You have already voted! Each user can only vote once.',
+                    alreadyVoted: true,
+                    votedAt: votingStatusCheck.votedAt
+                });
+            }
+        }
+        
         console.log(`📝 Processing vote for ${candidate} with token: ${token.substring(0, 20)}...`);
         
         // Cast vote using master branch blockchain utilities
@@ -105,6 +129,14 @@ app.post('/api/cast-vote', async (req, res) => {
         
         // Store vote record in database for Aadhaar integration
         if (userId) {
+            // Mark user as voted
+            db.markUserAsVoted(userId, result.transactionHash, (err) => {
+                if (err) {
+                    console.error('Error marking user as voted:', err);
+                }
+            });
+            
+            // Store detailed vote record
             db.storeVoteRecord(userId, candidate, result.transactionHash, (err) => {
                 if (err) {
                     console.error('Database storage error:', err);
@@ -368,111 +400,8 @@ app.get('/api/user/:uniqueNumber', (req, res) => {
     });
 });
 
-// Database management endpoints
-app.delete('/api/admin/clear-database', (req, res) => {
-    // Clear all users and fingerprints
-    db.db.run('DELETE FROM fingerprints', (err) => {
-        if (err) {
-            return res.status(500).json({
-                success: false,
-                message: 'Failed to clear fingerprints table'
-            });
-        }
-        
-        db.db.run('DELETE FROM users', (err) => {
-            if (err) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to clear users table'
-                });
-            }
-            
-            res.json({
-                success: true,
-                message: 'Database cleared successfully'
-            });
-        });
-    });
-});
 
-// EMERGENCY: Delete ALL data (database + blockchain votes)
-app.delete('/api/admin/emergency-delete-all', async (req, res) => {
-    const { confirmPassword } = req.body;
-    
-    // Require confirmation password for this dangerous operation
-    if (confirmPassword !== 'DELETE_ALL_DATA_CONFIRM_2024') {
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid confirmation password for emergency deletion'
-        });
-    }
-    
-    try {
-        console.log('⚠️ Emergency deletion: Blockchain reset not implemented');
-        // Note: Blockchain reset would require admin functions in smart contract
-        
-        // 2. Clear all database tables
-        const clearTables = (callback) => {
-            db.db.run('DELETE FROM voting_status', (err) => {
-                if (err) console.error('Error clearing voting_status:', err);
-                
-                db.db.run('DELETE FROM fingerprints', (err) => {
-                    if (err) console.error('Error clearing fingerprints:', err);
-                    
-                    db.db.run('DELETE FROM users', (err) => {
-                        if (err) console.error('Error clearing users:', err);
-                        callback(err);
-                    });
-                });
-            });
-        };
-        
-        clearTables((err) => {
-            if (err) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to clear database completely'
-                });
-            }
-            
-            res.json({
-                success: true,
-                message: 'EMERGENCY DELETION COMPLETE: All voter data and votes have been permanently deleted',
-                warning: 'This action cannot be undone. All voting history is lost.'
-            });
-        });
-        
-    } catch (error) {
-        console.error('Emergency deletion error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to complete emergency deletion'
-        });
-    }
-});
 
-app.get('/api/admin/stats', (req, res) => {
-    db.db.get('SELECT COUNT(*) as userCount FROM users', (err, userRow) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Failed to get user count' });
-        }
-        
-        db.db.get('SELECT COUNT(*) as fingerprintCount FROM fingerprints', (err, fpRow) => {
-            if (err) {
-                return res.status(500).json({ success: false, message: 'Failed to get fingerprint count' });
-            }
-            
-            res.json({
-                success: true,
-                stats: {
-                    users: userRow.userCount,
-                    fingerprints: fpRow.fingerprintCount,
-                    timestamp: new Date().toISOString()
-                }
-            });
-        });
-    });
-});
 
 // === BLOCKCHAIN VOTING ENDPOINTS ===
 
@@ -495,10 +424,48 @@ app.get('/api/blockchain/candidates', async (req, res) => {
     }
 });
 
-// Check if user has voted
+// Get user's blockchain address
+app.get('/api/user/:userId/blockchain-address', (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        const address = blockchainUtils.getUserAddress(userId);
+        
+        res.json({
+            success: true,
+            userId: userId,
+            blockchainAddress: address,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Error getting user blockchain address:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get blockchain address'
+        });
+    }
+});
+
+// Check if user has voted (database check) - Enhanced for frontend
 app.get('/api/voting/status/:userId', (req, res) => {
     const { userId } = req.params;
     
+    if (!userId) {
+        return res.status(400).json({
+            success: false,
+            message: 'User ID is required'
+        });
+    }
+    
+    // Check both voting status and if voting is active
     db.checkVotingStatus(userId, (err, result) => {
         if (err) {
             return res.status(500).json({
@@ -507,13 +474,89 @@ app.get('/api/voting/status/:userId', (req, res) => {
             });
         }
         
-        res.json({
-            success: true,
-            hasVoted: result.hasVoted,
-            votedAt: result.votedAt,
-            transactionHash: result.transactionHash
+        db.isVotingActive((err, activeStatus) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to check if voting is active'
+                });
+            }
+            
+            let message;
+            let canVote = false;
+            
+            if (result.hasVoted) {
+                message = 'You have already voted! Thank you for participating.';
+            } else if (!activeStatus.isActive) {
+                if (activeStatus.status !== 'ACTIVE') {
+                    message = 'Voting is currently not available. Please check back later.';
+                } else {
+                    const now = new Date();
+                    const startTime = new Date(activeStatus.startTime);
+                    const endTime = new Date(activeStatus.endTime);
+                    
+                    if (now < startTime) {
+                        message = `Voting has not started yet. Voting begins on ${startTime.toLocaleString()}.`;
+                    } else if (now > endTime) {
+                        message = `Voting has ended on ${endTime.toLocaleString()}.`;
+                    } else {
+                        message = 'Voting is currently not available.';
+                    }
+                }
+            } else {
+                message = 'You can cast your vote now.';
+                canVote = true;
+            }
+            
+            res.json({
+                success: true,
+                hasVoted: result.hasVoted,
+                votedAt: result.votedAt,
+                transactionHash: result.transactionHash,
+                message: message,
+                canVote: canVote,
+                votingStatus: activeStatus.status,
+                votingActive: activeStatus.isActive,
+                votingPeriod: {
+                    startTime: activeStatus.startTime,
+                    endTime: activeStatus.endTime,
+                    currentTime: activeStatus.currentTime
+                }
+            });
         });
     });
+});
+
+// Check if user has voted on blockchain
+app.get('/api/voting/blockchain-status/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        const hasVotedOnChain = await blockchainUtils.checkUserVotingStatus(userId);
+        const userAddress = blockchainUtils.getUserAddress(userId);
+        
+        res.json({
+            success: true,
+            userId: userId,
+            blockchainAddress: userAddress,
+            hasVotedOnBlockchain: hasVotedOnChain,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Error checking blockchain voting status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to check blockchain voting status'
+        });
+    }
 });
 
 // Cast anonymous vote on blockchain with encryption (Enhanced Version)
@@ -528,8 +571,42 @@ app.post('/api/voting/cast', async (req, res) => {
     }
     
     try {
-        // First check if user has already voted
-        db.checkVotingStatus(userId, async (err, votingStatus) => {
+        // First check if voting is active
+        db.isVotingActive((err, activeStatus) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to check if voting is active'
+                });
+            }
+            
+            if (!activeStatus.isActive) {
+                let message = 'Voting is not currently active.';
+                
+                if (activeStatus.status !== 'ACTIVE') {
+                    message = 'Voting is currently disabled by administrator.';
+                } else {
+                    const now = new Date();
+                    const startTime = new Date(activeStatus.startTime);
+                    const endTime = new Date(activeStatus.endTime);
+                    
+                    if (now < startTime) {
+                        message = `Voting has not started yet. Voting begins on ${startTime.toLocaleString()}.`;
+                    } else if (now > endTime) {
+                        message = `Voting has ended on ${endTime.toLocaleString()}.`;
+                    }
+                }
+                
+                return res.status(403).json({
+                    success: false,
+                    message: message,
+                    votingActive: false,
+                    votingStatus: activeStatus
+                });
+            }
+            
+            // Check if user has already voted
+            db.checkVotingStatus(userId, async (err, votingStatus) => {
             if (err) {
                 return res.status(500).json({
                     success: false,
@@ -538,9 +615,13 @@ app.post('/api/voting/cast', async (req, res) => {
             }
             
             if (votingStatus.hasVoted) {
+                console.log(`⚠️ User ${userId} attempted to vote again - already voted at ${votingStatus.votedAt}`);
                 return res.status(400).json({
                     success: false,
-                    message: 'User has already voted'
+                    message: 'You have already voted! Each user can only vote once.',
+                    alreadyVoted: true,
+                    votedAt: votingStatus.votedAt,
+                    transactionHash: votingStatus.transactionHash
                 });
             }
             
@@ -561,8 +642,8 @@ app.post('/api/voting/cast', async (req, res) => {
                 
                 console.log(`📝 Processing vote for user ${userId}, candidate ${candidateName}...`);
                 
-                // Use master branch blockchain utilities
-                const result = await blockchainUtils.castVote(oactToken, candidateName);
+                // Use master branch blockchain utilities with user-specific address
+                const result = await blockchainUtils.castVoteForUser(userId, oactToken, candidateName);
                 
                 if (result) {
                     // Mark user as voted in local database
@@ -617,6 +698,7 @@ app.post('/api/voting/cast', async (req, res) => {
                     message: 'Failed to cast vote using enhanced blockchain: ' + blockchainError.message
                 });
             }
+            });
         });
         
     } catch (error) {
@@ -628,7 +710,7 @@ app.post('/api/voting/cast', async (req, res) => {
     }
 });
 
-// Verify vote receipt (shows transaction details but NOT vote choice)
+// Verify vote receipt using Etherscan (blockchain-only verification)
 app.post('/api/voting/verify-receipt', async (req, res) => {
     const { receiptHash } = req.body;
     
@@ -639,67 +721,87 @@ app.post('/api/voting/verify-receipt', async (req, res) => {
         });
     }
     
+    // Validate transaction hash format
+    if (!receiptHash.match(/^0x[a-fA-F0-9]{64}$/)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid transaction hash format. Must be 64-character hex string starting with 0x'
+        });
+    }
+    
     try {
-        // Get transaction details from blockchain using blockchainUtils
-        const receipt = await blockchainUtils.getTransactionReceipt(receiptHash);
+        console.log(`🔍 Verifying receipt ${receiptHash} using Etherscan...`);
         
-        if (!receipt) {
+        // Use Etherscan API for verification (no database dependency)
+        const verificationResult = await blockchainUtils.verifyVoteTransaction(receiptHash);
+        
+        if (!verificationResult.isValid) {
             return res.status(404).json({
                 success: false,
-                message: 'Receipt not found. Please check your transaction hash.'
+                message: verificationResult.error || 'Transaction not found or invalid',
+                etherscanUrl: `https://sepolia.etherscan.io/tx/${receiptHash}`
             });
         }
         
-        // Try to get voter info from database if available
-        let voterInfo = null;
-        let candidateInfo = null;
+        const txData = verificationResult.txData;
         
-        // Check if we have this transaction recorded in our database
-        db.db.get(
-            'SELECT users.name, users.uniqueNumber, users.id, votes.candidateName, votes.candidateParty, votes.votedAt FROM users INNER JOIN votes ON users.id = votes.userId WHERE votes.transactionHash = ?',
-            [receiptHash],
-            async (err, voteRow) => {
-                if (!err && voteRow) {
-                    voterInfo = {
-                        name: voteRow.name,
-                        aadhaarId: voteRow.uniqueNumber // Use uniqueNumber as Aadhaar ID
-                    };
-                    candidateInfo = {
-                        name: voteRow.candidateName,
-                        party: voteRow.candidateParty
-                    };
+        // Return blockchain-verified receipt information (no personal data)
+        const receiptData = {
+            success: true,
+            receipt: {
+                transactionHash: receiptHash,
+                blockNumber: txData.blockNumber,
+                blockHash: txData.blockHash,
+                timestamp: txData.timestamp,
+                gasUsed: txData.gasUsed,
+                gasPrice: txData.gasPrice,
+                status: txData.status === 1 ? 'Success' : 'Failed',
+                contractAddress: txData.to,
+                fromAddress: txData.from,
+                etherscanUrl: txData.etherscanUrl,
+                verified: true,
+                source: 'Etherscan Blockchain Verification',
+                
+                // Privacy-protected information
+                voterName: 'Verified Voter', // Always anonymous
+                voterId: '****-****-****', // Always masked
+                candidateName: 'Vote Recorded', // Never revealed
+                candidateParty: 'Privacy Protected', // Never revealed
+                
+                // Security confirmation
+                securityStatus: {
+                    blockchainConfirmed: true,
+                    immutableRecord: true,
+                    etherscanVerified: true,
+                    privacyProtected: true
                 }
-                
-                // Use database timestamp if available, otherwise current timestamp
-                const voteTimestamp = voteRow && voteRow.votedAt ? 
-                    new Date(voteRow.votedAt).toISOString() : 
-                    new Date().toISOString();
-                
-                // Return transaction details WITH voter and candidate info when available
-                res.json({
-                    success: true,
-                    receipt: {
-                        transactionHash: receiptHash,
-                        blockNumber: receipt.blockNumber || 'Unknown',
-                        timestamp: voteTimestamp,
-                        gasUsed: receipt.gasUsed || 'Unknown',
-                        status: receipt.status === 1 ? 'Success' : 'Confirmed',
-                        contractAddress: receipt.to || 'Voting Contract',
-                        voterName: voterInfo ? voterInfo.name : 'Verified Voter',
-                        voterId: voterInfo ? voterInfo.aadhaarId : null,
-                        candidateName: candidateInfo ? candidateInfo.name : null,
-                        candidateParty: candidateInfo ? candidateInfo.party : null,
-                        verified: true
-                    }
-                });
             }
-        );
+        };
+        
+        console.log(`✅ Receipt ${receiptHash} verified successfully on Etherscan`);
+        console.log(`📊 Block: ${txData.blockNumber}, Status: ${txData.status === 1 ? 'Success' : 'Failed'}`);
+        
+        res.json(receiptData);
         
     } catch (error) {
-        console.error('Error verifying receipt:', error);
+        console.error('❌ Error verifying receipt via Etherscan:', error);
+        
+        // Provide helpful error messages
+        let errorMessage = 'Failed to verify receipt';
+        
+        if (error.message.includes('not found')) {
+            errorMessage = 'Transaction not found on blockchain. It may still be pending or the hash may be incorrect.';
+        } else if (error.message.includes('API')) {
+            errorMessage = 'Blockchain verification service temporarily unavailable. Please try again in a few moments.';
+        } else if (error.message.includes('network')) {
+            errorMessage = 'Network error while connecting to blockchain. Please check your connection.';
+        }
+        
         res.status(500).json({
             success: false,
-            message: 'Failed to verify receipt. Please check your transaction hash.'
+            message: errorMessage,
+            etherscanUrl: `https://sepolia.etherscan.io/tx/${receiptHash}`,
+            suggestion: 'You can also verify your transaction directly on Etherscan using the link above'
         });
     }
 });
@@ -721,21 +823,27 @@ app.get('/api/blockchain/results', async (req, res) => {
         // Sort by vote count (highest first)
         candidateResults.sort((a, b) => b.voteCount - a.voteCount);
         
-        console.log(`✅ Master branch results: ${results.totalVotes} total votes`);
-        
-        res.json({
-            success: true,
-            results: {
-                candidates: candidateResults,
-                candidateA: results.candidateA,
-                candidateB: results.candidateB,
-                candidateC: results.candidateC,
-                totalVotes: results.totalVotes,
-                totalCandidates: candidateResults.length,
-                timestamp: new Date().toISOString(),
-                source: 'Master Branch Blockchain Utils'
-            },
-            message: 'Results fetched using master branch blockchain utilities'
+        // Get voting status from database
+        db.isVotingActive((err, votingStatus) => {
+            const isVotingActive = err ? true : votingStatus.isActive; // Default to active if error
+            
+            console.log(`✅ Master branch results: ${results.totalVotes} total votes, Voting Status: ${isVotingActive ? 'ACTIVE' : 'CLOSED'}`);
+            
+            res.json({
+                success: true,
+                results: {
+                    candidates: candidateResults,
+                    candidateA: results.candidateA,
+                    candidateB: results.candidateB,
+                    candidateC: results.candidateC,
+                    totalVotes: results.totalVotes,
+                    totalCandidates: candidateResults.length,
+                    votingActive: isVotingActive,
+                    timestamp: new Date().toISOString(),
+                    source: 'Master Branch Blockchain Utils'
+                },
+                message: 'Results fetched using master branch blockchain utilities'
+            });
         });
         
     } catch (error) {
@@ -748,60 +856,98 @@ app.get('/api/blockchain/results', async (req, res) => {
     }
 });
 
-// Get encrypted votes metadata from blockchain (admin only)
-// NOTE: Master branch doesn't support encrypted votes - simplified implementation
-app.get('/api/blockchain/encrypted-votes', async (req, res) => {
+// Get encrypted votes metadata from blockchain (public view - truly encrypted)
+app.get('/api/blockchain/public-encrypted-votes', async (req, res) => {
     try {
-        // Master branch uses simple voting, no encrypted votes
-        res.json({
-            success: true,
-            encryptedVotes: [],
-            message: 'Master branch uses transparent voting - no encrypted vote storage'
-        });
-    } catch (error) {
-        console.error('Error fetching encrypted votes metadata:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch encrypted votes metadata from blockchain'
-        });
-    }
-});
-
-// Admin: Reset voting (clear all votes)
-app.post('/api/admin/reset-votes', async (req, res) => {
-    try {
-        console.log('⚠️ Admin reset: Master branch contract doesn\'t support vote reset');
+        console.log('📊 Fetching public encrypted vote records...');
         
-        // Clear voting status in local database only
-        db.db.run('DELETE FROM voting_status', (err) => {
-            if (err) {
-                console.error('Error clearing voting status:', err);
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to clear database voting status'
-                });
-            }
-            
-            db.db.run('DELETE FROM votes', (err) => {
+        // Get vote records from database (fully anonymized)
+        db.db.all(
+            'SELECT transactionHash, votedAt, userId FROM votes ORDER BY votedAt DESC',
+            [],
+            async (err, voteRows) => {
                 if (err) {
-                    console.error('Error clearing votes:', err);
+                    console.error('Database error:', err);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Failed to fetch vote records'
+                    });
+                }
+                
+                // Create fully anonymized vote records
+                const voteRecords = [];
+                
+                for (let i = 0; i < voteRows.length; i++) {
+                    const vote = voteRows[i];
+                    
+                    // Create anonymized voter hash (fully secure)
+                    const voterHashSeed = `${vote.userId}_${vote.transactionHash.slice(-8)}`;
+                    const voterHash = crypto.createHash('sha256').update(voterHashSeed).digest('hex').slice(0, 16);
+                    
+                    voteRecords.push({
+                        id: i + 1,
+                        voterHash: `VOTER_${voterHash}`,
+                        encryptedChoice: 'Vote choice encrypted for privacy',
+                        transactionHash: vote.transactionHash,
+                        timestamp: vote.votedAt || new Date().toISOString(),
+                        receiptHash: vote.transactionHash,
+                        status: 'Confirmed'
+                    });
                 }
                 
                 res.json({
                     success: true,
-                    message: 'Database voting records cleared (blockchain votes remain)'
+                    encryptedVotes: voteRecords,
+                    totalVotes: voteRecords.length,
+                    message: voteRecords.length > 0 
+                        ? `Found ${voteRecords.length} encrypted vote record(s) on blockchain`
+                        : 'No votes have been cast yet',
+                    timestamp: new Date().toISOString(),
+                    note: 'This is the public view - vote choices are encrypted and anonymized'
                 });
-            });
-        });
+            }
+        );
         
     } catch (error) {
-        console.error('Error resetting votes:', error);
+        console.error('Error fetching public encrypted votes:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to reset votes'
+            message: 'Failed to fetch public encrypted votes'
         });
     }
 });
+
+// Get voting configuration (status, times, etc.)
+app.get('/api/voting/config', (req, res) => {
+    db.getVotingConfig((err, config) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to get voting configuration'
+            });
+        }
+        
+        db.isVotingActive((err, activeStatus) => {
+            if (err) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to check voting status'
+                });
+            }
+            
+            res.json({
+                success: true,
+                config: {
+                    ...config,
+                    ...activeStatus
+                }
+            });
+        });
+    });
+});
+
+
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -826,9 +972,9 @@ app.get('*', (req, res) => {
                 getUser: 'GET /api/user/:uniqueNumber',
                 candidates: 'GET /api/blockchain/candidates',
                 votingStatus: 'GET /api/voting/status/:userId',
+                votingConfig: 'GET /api/voting/config',
                 castVote: 'POST /api/voting/cast',
                 results: 'GET /api/blockchain/results',
-                resetVotes: 'POST /api/admin/reset-votes',
                 health: 'GET /api/health'
             }
         });
@@ -855,19 +1001,22 @@ app.use((req, res) => {
 // Start server
 app.listen(PORT, () => {
     // In case of port conflict, try another port, e.g., 3001
-    console.log(`🚀 E-Voting System running on http://localhost:${PORT}`);
-    console.log('📋 Available endpoints:');
-    console.log('  • GET  /                           - Main dashboard');
-    console.log('  • POST /api/register               - Register new user');
-    console.log('  • POST /api/register-fingerprint   - Store fingerprint');
-    console.log('  • POST /api/verify-fingerprint     - Verify fingerprint');
-    console.log('  • GET  /api/user/:number           - Get user by unique number');
-    console.log('  • GET  /api/blockchain/candidates  - Get candidates from blockchain');
-    console.log('  • GET  /api/voting/status/:userId  - Check if user has voted');
-    console.log('  • POST /api/voting/cast            - Cast vote on blockchain');
-    console.log('  • GET  /api/blockchain/results     - Get voting results');
-    console.log('  • POST /api/admin/reset-votes      - Reset all votes (admin)');
-    console.log('  • GET  /api/health                 - Health check');
+console.log('🚀 E-Voting System running on http://localhost:' + PORT);
+console.log('📋 Available endpoints:');
+console.log('  • GET  /                                    - Main dashboard');
+console.log('  • POST /api/register                        - Register new user');
+console.log('  • POST /api/register-fingerprint            - Store fingerprint');
+console.log('  • POST /api/verify-fingerprint              - Verify fingerprint');
+console.log('  • GET  /api/user/:number                     - Get user by unique number');
+console.log('  • GET  /api/user/:userId/blockchain-address - Get user blockchain address');
+console.log('  • GET  /api/blockchain/candidates            - Get candidates from blockchain');
+console.log('  • GET  /api/voting/status/:userId            - Check if user has voted (DB)');
+console.log('  • GET  /api/voting/blockchain-status/:userId - Check if user voted (blockchain)');
+console.log('  • GET  /api/voting/config                    - Get voting configuration and status');
+console.log('  • POST /api/voting/cast                      - Cast vote on blockchain');
+console.log('  • GET  /api/blockchain/results               - Get voting results');
+console.log('  • GET  /api/blockchain/public-encrypted-votes- Get public encrypted votes');
+console.log('  • GET  /api/health                           - Health check');
     console.log('');
     console.log('🔗 Blockchain: Using master branch blockchain utilities');
     console.log('📝 Smart Contract: Configured via environment variables');

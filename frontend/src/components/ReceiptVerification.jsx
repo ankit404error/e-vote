@@ -67,7 +67,7 @@ const ReceiptVerification = () => {
 
   return (
     <div className="receipt-verification-container">
-      <FloatingParticles count={20} />
+      <FloatingParticles count={8} />
       
       {/* Header */}
       <header className="verification-header">

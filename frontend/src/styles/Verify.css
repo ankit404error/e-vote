@@ -1,15 +1,7 @@
 /* Premium Verify Styles - Professional Dark Theme */
 .verify-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, 
-    #0f172a 0%, 
-    #1e293b 25%, 
-    #334155 50%, 
-    #1e293b 75%, 
-    #0f172a 100%
-  );
-  background-size: 400% 400%;
-  animation: gradientFlow 20s ease infinite;
+  background: #6c5ce7;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -23,10 +15,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+  background: transparent;
   pointer-events: none;
   z-index: 0;
 }

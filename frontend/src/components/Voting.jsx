@@ -18,6 +18,9 @@ const Voting = () => {
   const [error, setError] = useState('')
   const [hasAlreadyVoted, setHasAlreadyVoted] = useState(false)
   const [hoveredCandidate, setHoveredCandidate] = useState(null)
+  const [votingConfig, setVotingConfig] = useState(null)
+  const [votingActive, setVotingActive] = useState(true)
+  const [votingMessage, setVotingMessage] = useState('')
 
   // Helper function for candidate gradient colors
   const getCandidateGradient = (candidateNumber) => {
@@ -63,11 +66,24 @@ const Voting = () => {
       const response = await fetch(`/api/voting/status/${user.id}`)
       const data = await response.json()
       
-      if (data.success && data.hasVoted) {
-        setHasAlreadyVoted(true)
+      if (data.success) {
+        setHasAlreadyVoted(data.hasVoted)
+        setVotingActive(data.canVote)
+        setVotingMessage(data.message)
+        
+        if (data.votingPeriod) {
+          setVotingConfig({
+            status: data.votingStatus,
+            isActive: data.votingActive,
+            startTime: data.votingPeriod.startTime,
+            endTime: data.votingPeriod.endTime,
+            currentTime: data.votingPeriod.currentTime
+          })
+        }
       }
     } catch (error) {
       console.warn('Could not check voting status:', error)
+      setError('Could not verify voting status')
     }
   }
 
@@ -300,10 +316,11 @@ const Voting = () => {
               <h1 style={{
                 fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
                 fontWeight: '700',
-                color: '#f1f5f9',
+                color: '#ffffff !important',
                 margin: '0 0 1rem 0',
                 letterSpacing: '-0.5px',
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
               }}>
                 🗳️ Cast Your Vote
               </h1>
@@ -383,21 +400,127 @@ const Voting = () => {
       <main className="relative z-10 flex-1 p-6">
         {hasAlreadyVoted && !voteComplete ? (
           /* Already Voted Message */
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="bg-black/40 backdrop-blur-2xl border border-white/20 rounded-3xl p-8 max-w-md text-center">
-              <CheckCircle size={80} className="text-green-400 mx-auto mb-6 animate-pulse" />
-              <h2 className="text-3xl font-bold text-white mb-4">Vote Already Cast</h2>
-              <p className="text-white/80 text-lg mb-6">You have already participated in this election.</p>
-              <div className="flex items-center gap-3 bg-green-500/20 rounded-2xl p-4 mb-8">
-                <Shield size={20} className="text-green-400" />
-                <span className="text-white">Your vote is anonymous and securely stored on the blockchain.</span>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            minHeight: '60vh',
+            padding: '2rem 1rem'
+          }}>
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.95)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '24px',
+              padding: '3rem 2.5rem',
+              maxWidth: '600px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.2)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Success glow effect */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 60%)',
+                pointerEvents: 'none'
+              }} />
+              
+              {/* Content */}
+              <div style={{ position: 'relative', zIndex: 2 }}>
+                {/* Success Icon */}
+                <div style={{
+                  width: '100px',
+                  height: '100px',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 2rem auto',
+                  animation: 'successPulse 2s ease-in-out infinite',
+                  boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.3)'
+                }}>
+                  <CheckCircle size={50} style={{ color: 'white' }} />
+                </div>
+                
+                {/* Title */}
+                <h2 style={{
+                  fontSize: '2.2rem',
+                  fontWeight: '700',
+                  color: '#ffffff',
+                  marginBottom: '1rem',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+                }}>Vote Already Cast</h2>
+                
+                {/* Subtitle */}
+                <p style={{
+                  color: '#cbd5e1',
+                  fontSize: '1.1rem',
+                  marginBottom: '2rem',
+                  lineHeight: '1.6'
+                }}>You have already participated in this election.</p>
+                
+                {/* Security message */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '1rem',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  marginBottom: '2.5rem'
+                }}>
+                  <Shield size={24} style={{ color: '#10b981' }} />
+                  <span style={{ 
+                    color: '#ffffff', 
+                    fontWeight: '500',
+                    fontSize: '1rem',
+                    textAlign: 'left'
+                  }}>
+                    Your vote is anonymous and securely stored on the blockchain.
+                  </span>
+                </div>
+                
+                {/* Action button */}
+                <button 
+                  onClick={handleBackToDashboard}
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '1rem 2rem',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '1.1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = 'translateY(-2px) scale(1.02)';
+                    e.target.style.boxShadow = '0 12px 30px rgba(59, 130, 246, 0.4)';
+                    e.target.style.background = 'linear-gradient(135deg, #2563eb, #7c3aed)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = 'translateY(0) scale(1)';
+                    e.target.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.3)';
+                    e.target.style.background = 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
+                  }}
+                >
+                  📈 View Results
+                </button>
               </div>
-              <button 
-                onClick={handleBackToDashboard} 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
-              >
-                View Results
-              </button>
             </div>
           </div>
         ) : voteComplete ? (
@@ -744,24 +867,72 @@ const Voting = () => {
                   lineHeight: '1.6',
                   fontWeight: '400'
                 }}>
-                  Choose one candidate from the list below. Your vote will be encrypted and stored anonymously on the blockchain.
+                  {votingActive ? 
+                    'Choose one candidate from the list below. Your vote will be encrypted and stored anonymously on the blockchain.' :
+                    votingMessage}
                 </p>
                 
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.75rem',
-                  background: 'rgba(51, 65, 85, 0.6)',
-                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  background: votingActive ? 'rgba(51, 65, 85, 0.6)' : 'rgba(239, 68, 68, 0.2)',
+                  border: votingActive ? '1px solid rgba(71, 85, 105, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
                   borderRadius: '12px',
                   padding: '0.75rem 1rem',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                 }}>
-                  <Shield size={18} style={{ color: '#10b981' }} />
-                  <span style={{ color: '#e2e8f0', fontWeight: '500', fontSize: '0.9rem' }}>
-                    Secure • Anonymous • Verifiable
-                  </span>
+                  {votingActive ? (
+                    <>
+                      <Shield size={18} style={{ color: '#10b981' }} />
+                      <span style={{ color: '#e2e8f0', fontWeight: '500', fontSize: '0.9rem' }}>
+                        Secure • Anonymous • Verifiable
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={18} style={{ color: '#ef4444' }} />
+                      <span style={{ color: '#fca5a5', fontWeight: '500', fontSize: '0.9rem' }}>
+                        {votingConfig?.status === 'INACTIVE' ? 'Voting Disabled' : 'Voting Period Inactive'}
+                      </span>
+                    </>
+                  )}
                 </div>
+                
+                {/* Voting Period Display */}
+                {votingConfig && (
+                  <div style={{
+                    marginTop: '1.5rem',
+                    padding: '1rem 1.5rem',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid rgba(71, 85, 105, 0.4)',
+                    borderRadius: '12px',
+                    maxWidth: '500px',
+                    margin: '1.5rem auto 0 auto'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <Clock size={16} style={{ color: '#94a3b8' }} />
+                      <span style={{ color: '#94a3b8', fontWeight: '500', fontSize: '0.9rem' }}>Voting Period</span>
+                    </div>
+                    <div style={{ textAlign: 'center', color: '#e2e8f0', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                      <div>Start: {new Date(votingConfig.startTime).toLocaleString()}</div>
+                      <div>End: {new Date(votingConfig.endTime).toLocaleString()}</div>
+                      <div style={{ 
+                        marginTop: '0.5rem', 
+                        fontWeight: '600',
+                        color: votingConfig.isActive ? '#10b981' : '#ef4444'
+                      }}>
+                        Status: {votingConfig.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -790,12 +961,14 @@ const Voting = () => {
                     return (
                       <div
                         key={candidate.id}
-                        onClick={() => setSelectedCandidate(candidate)}
-                        onMouseEnter={() => setHoveredCandidate(candidate.id)}
+                        onClick={() => votingActive && !hasAlreadyVoted ? setSelectedCandidate(candidate) : null}
+                        onMouseEnter={() => votingActive && !hasAlreadyVoted ? setHoveredCandidate(candidate.id) : null}
                         onMouseLeave={() => setHoveredCandidate(null)}
                         style={{
                           position: 'relative',
-                          background: isSelected 
+                          background: (!votingActive || hasAlreadyVoted) 
+                            ? 'rgba(15, 23, 42, 0.3)'
+                            : isSelected 
                             ? 'rgba(15, 23, 42, 0.9)'
                             : isHovered
                             ? 'rgba(30, 41, 59, 0.8)'
@@ -809,7 +982,7 @@ const Voting = () => {
                             : '1px solid rgba(71, 85, 105, 0.3)',
                           borderRadius: '16px',
                           padding: '1.5rem',
-                          cursor: 'pointer',
+                          cursor: votingActive && !hasAlreadyVoted ? 'pointer' : 'not-allowed',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                           transform: isSelected 
                             ? 'translateY(-4px)' 
@@ -821,7 +994,8 @@ const Voting = () => {
                             : isHovered 
                             ? '0 12px 20px rgba(0, 0, 0, 0.25)'
                             : '0 4px 12px rgba(0, 0, 0, 0.15)',
-                          overflow: 'hidden'
+                          overflow: 'hidden',
+                          opacity: (!votingActive || hasAlreadyVoted) ? 0.5 : 1
                         }}
                       >
                         {/* Animated Background Pattern */}
@@ -965,39 +1139,28 @@ const Voting = () => {
                               opacity: 0.9
                             }}>{candidate.party}</p>
                             
-                            {/* Vote Stats */}
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.75rem',
-                              padding: '0.75rem 1rem',
-                              background: 'rgba(0, 0, 0, 0.3)',
-                              borderRadius: '12px',
-                              border: '1px solid rgba(255, 255, 255, 0.1)'
-                            }}>
-                              <Users size={18} style={{ color: 'rgba(255, 255, 255, 0.7)' }} />
-                              <span style={{ 
-                                color: 'rgba(255, 255, 255, 0.9)', 
-                                fontWeight: '600',
-                                fontSize: '0.95rem'
+                            {/* Ready to Vote Indicator */}
+                            {isSelected && (
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.75rem',
+                                padding: '0.75rem 1rem',
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                justifyContent: 'center'
                               }}>
-                                {candidate.voteCount} votes cast
-                              </span>
-                              {isSelected && (
-                                <div style={{ 
-                                  marginLeft: 'auto',
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '0.5rem', 
+                                <Vote size={18} style={{ color: '#10b981' }} />
+                                <span style={{ 
                                   color: '#10b981', 
                                   fontWeight: '700',
-                                  fontSize: '0.85rem'
+                                  fontSize: '0.95rem'
                                 }}>
-                                  <Vote size={14} />
-                                  <span>READY TO VOTE</span>
-                                </div>
-                              )}
-                            </div>
+                                  READY TO VOTE
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -1048,7 +1211,7 @@ const Voting = () => {
                   {/* Premium Vote Button */}
                   <button
                     onClick={handleVote}
-                    disabled={!selectedCandidate || voting || hasAlreadyVoted}
+                    disabled={!selectedCandidate || voting || hasAlreadyVoted || !votingActive}
                     style={{
                       position: 'relative',
                       display: 'inline-flex',
@@ -1060,30 +1223,30 @@ const Voting = () => {
                       fontWeight: 'bold',
                       fontSize: '1.3rem',
                       border: 'none',
-                      cursor: selectedCandidate && !voting && !hasAlreadyVoted ? 'pointer' : 'not-allowed',
-                      background: selectedCandidate && !voting && !hasAlreadyVoted
+                      cursor: selectedCandidate && !voting && !hasAlreadyVoted && votingActive ? 'pointer' : 'not-allowed',
+                      background: selectedCandidate && !voting && !hasAlreadyVoted && votingActive
                         ? 'linear-gradient(135deg, #10b981 0%, #059669 30%, #047857 70%, #065f46 100%)'
                         : 'linear-gradient(135deg, rgba(107, 114, 128, 0.6) 0%, rgba(75, 85, 99, 0.6) 100%)',
-                      color: selectedCandidate && !voting && !hasAlreadyVoted ? 'white' : 'rgba(156, 163, 175, 0.8)',
-                      boxShadow: selectedCandidate && !voting && !hasAlreadyVoted
+                      color: selectedCandidate && !voting && !hasAlreadyVoted && votingActive ? 'white' : 'rgba(156, 163, 175, 0.8)',
+                      boxShadow: selectedCandidate && !voting && !hasAlreadyVoted && votingActive
                         ? '0 20px 40px rgba(16, 185, 129, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.2)'
                         : '0 8px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                       transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                      transform: selectedCandidate && !voting && !hasAlreadyVoted ? 'scale(1)' : 'scale(0.95)',
-                      textShadow: selectedCandidate && !voting && !hasAlreadyVoted ? '0 2px 8px rgba(0, 0, 0, 0.4)' : 'none',
+                      transform: selectedCandidate && !voting && !hasAlreadyVoted && votingActive ? 'scale(1)' : 'scale(0.95)',
+                      textShadow: selectedCandidate && !voting && !hasAlreadyVoted && votingActive ? '0 2px 8px rgba(0, 0, 0, 0.4)' : 'none',
                       letterSpacing: '0.5px',
                       textTransform: 'uppercase',
                       overflow: 'hidden'
                     }}
                     onMouseEnter={(e) => {
-                      if (selectedCandidate && !voting && !hasAlreadyVoted) {
+                      if (selectedCandidate && !voting && !hasAlreadyVoted && votingActive) {
                         e.target.style.transform = 'translateY(-8px) scale(1.08)'
                         e.target.style.boxShadow = '0 30px 60px rgba(16, 185, 129, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -2px 0 rgba(0, 0, 0, 0.2)'
                         e.target.style.background = 'linear-gradient(135deg, #34d399 0%, #10b981 30%, #059669 70%, #047857 100%)'
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (selectedCandidate && !voting && !hasAlreadyVoted) {
+                      if (selectedCandidate && !voting && !hasAlreadyVoted && votingActive) {
                         e.target.style.transform = 'scale(1)'
                         e.target.style.boxShadow = '0 20px 40px rgba(16, 185, 129, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.2)'
                         e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 30%, #047857 70%, #065f46 100%)'
@@ -1091,7 +1254,7 @@ const Voting = () => {
                     }}
                   >
                     {/* Button shine effect */}
-                    {selectedCandidate && !voting && !hasAlreadyVoted && (
+                    {selectedCandidate && !voting && !hasAlreadyVoted && votingActive && (
                       <div style={{
                         position: 'absolute',
                         top: 0,

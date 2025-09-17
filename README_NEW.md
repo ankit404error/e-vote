@@ -1,6 +1,6 @@
 # Enhanced E-Voting System
 
-A comprehensive blockchain-based e-voting system with biometric authentication, real-time results, admin controls, and vote decryption capabilities.
+A comprehensive blockchain-based e-voting system with biometric authentication, real-time results, and vote decryption capabilities.
 
 ## 🚀 Features
 
@@ -9,12 +9,10 @@ A comprehensive blockchain-based e-voting system with biometric authentication, 
 - **⛓️ Blockchain Integration**: Immutable vote storage on Ethereum blockchain with encryption
 - **📊 Real-time Results**: Live vote tallies and election results dashboard
 - **🔒 Privacy Protection**: Anonymous voting with encrypted vote choices
-- **⚙️ Admin Controls**: Comprehensive system management and vote administration
 - **📋 Audit Trail**: Complete transaction history and vote decryption for transparency
 
 ### Enhanced Components
 - **📈 Live Results Dashboard**: Real-time vote tracking with charts and statistics
-- **🛠️ Admin Management Panel**: User management, vote controls, and system statistics
 - **🔓 Vote Decryption Interface**: Authorized access to decrypt votes for audit purposes
 - **📱 Responsive Design**: Mobile-friendly interface with modern UI
 - **🔍 Analytics & Reporting**: Vote statistics, turnout tracking, and detailed reporting
@@ -37,7 +35,7 @@ A comprehensive blockchain-based e-voting system with biometric authentication, 
 │ • Dashboard     │    │ • User Auth     │    │ • Vote Storage  │
 │ • Voting UI     │    │ • Vote API      │    │ • Encryption    │
 │ • Results       │    │ • Database      │    │ • Immutability  │
-│ • Admin Panel   │    │ • Fingerprints  │    │ • Transparency  │
+│                 │    │ • Fingerprints  │    │ • Transparency  │
 │ • Decryption    │    │ • Security      │    │ • Audit Trail   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
@@ -130,15 +128,6 @@ npm run dev
 - Voting statistics
 - Auto-refresh capabilities
 
-### ⚙️ Admin Panel (`/admin`)
-**Authentication Required** (Password: `admin123`)
-
-**Features:**
-- 📈 System overview and statistics
-- 👥 User management and controls
-- 🗳️ Vote management and reset
-- ⛓️ Blockchain data viewing
-- 🔧 System configuration
 
 ### 🔓 Vote Decryption (`/decrypt`)
 **Private Key Required** (Demo: `demo_private_key_for_decryption`)
@@ -166,14 +155,10 @@ GET    /api/blockchain/candidates    # Get all candidates
 POST   /api/voting/cast             # Cast encrypted vote
 GET    /api/voting/status/:userId   # Check voting status
 GET    /api/blockchain/results      # Get live results
-GET    /api/blockchain/encrypted-votes # Get encrypted votes (admin)
 ```
 
-### Administration Endpoints
+### System Endpoints
 ```
-DELETE /api/admin/clear-database  # Clear all data
-POST   /api/admin/reset-votes     # Reset all votes
-GET    /api/admin/stats           # Get system statistics
 GET    /api/health                # Health check
 ```
 
@@ -222,16 +207,8 @@ E-Vote/
 voteWithEncryption(candidateId, encryptedChoice, voterHash) # Cast encrypted vote
 getAllCandidates() returns (candidates[])                   # Get candidate list
 getResults() returns (totalVotes, candidates, isActive)     # Get voting results
-getAllEncryptedVotes() returns (encryptedVotes[])          # Get encrypted votes (admin)
 ```
 
-#### Administrative Functions
-```solidity
-addCandidate(name, party)      # Add new candidate (admin)
-resetVotes()                   # Reset all votes (admin)
-toggleVoting()                 # Enable/disable voting (admin)
-emergencyReset()               # Complete system reset (admin)
-```
 
 ### Testing
 
@@ -256,7 +233,6 @@ DB_PATH=./aadhaar_demo.db    # Database file path
 
 ### Demo Credentials
 ```
-Admin Password: admin123
 Decryption Key: demo_private_key_for_decryption
 ```
 

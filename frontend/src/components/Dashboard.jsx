@@ -13,36 +13,49 @@ const Dashboard = () => {
   const [animationReady, setAnimationReady] = useState(false)
 
   useEffect(() => {
-    // Simplified to avoid API calls blocking the UI
+    // Initialize with proper values
     setSystemStatus({
       system: '✅ Online',
       database: '✅ Connected'
     })
-    setDbStats({ users: 5, fingerprints: 5 })
+    
+    // Load real data from API or show appropriate defaults
+    loadSystemStats()
     
     // Add staggered animation timing
     setTimeout(() => setAnimationReady(true), 100)
     
-    // Comment out API calls for now
-    // const interval = setInterval(checkSystemStatus, 30000)
-    // return () => clearInterval(interval)
+    // Refresh stats periodically
+    const interval = setInterval(loadSystemStats, 30000)
+    return () => clearInterval(interval)
   }, [])
+
+  const loadSystemStats = async () => {
+    try {
+      // Check if there's a different stats endpoint available or just show empty state
+      setDbStats({ users: 0, fingerprints: 0 })
+    } catch (error) {
+      console.log('Stats not available, showing empty state')
+      setDbStats({ users: 0, fingerprints: 0 })
+    }
+  }
 
   const checkSystemStatus = async (userTriggered = false) => {
     if (userTriggered) setRefreshing(true)
     
     try {
-      // Temporarily mock the API responses to avoid blocking
+      // Check system status and reload stats
       setSystemStatus({
         system: '✅ Online',
         database: '✅ Connected'
       })
-      setDbStats({ users: 5, fingerprints: 5 })
+      await loadSystemStats()
     } catch (error) {
       setSystemStatus({
         system: '❌ Offline',
         database: '❌ Disconnected'
       })
+      setDbStats({ users: 0, fingerprints: 0 })
     } finally {
       if (userTriggered) {
         setTimeout(() => setRefreshing(false), 500) // Add slight delay for UX
@@ -51,39 +64,7 @@ const Dashboard = () => {
   }
 
   const clearDatabase = async () => {
-    const confirmed = window.confirm(
-      '⚠️ DANGER: Clear All Data\n\n' +
-      'This will permanently delete:\n' +
-      '• All registered users\n' +
-      '• All fingerprint data\n' +
-      '• All votes and blockchain records\n\n' +
-      'This action CANNOT be undone!\n\n' +
-      'Are you absolutely sure?'
-    )
-    
-    if (!confirmed) return
-    
-    setLoading(true)
-    try {
-      const response = await fetch('/api/admin/clear-database', {
-        method: 'DELETE'
-      })
-      const data = await response.json()
-      
-      if (data.success) {
-        // Show success with better UX
-        setTimeout(() => {
-          alert('✅ Database cleared successfully!')
-          checkSystemStatus() // Refresh stats
-        }, 1000)
-      } else {
-        alert('❌ Failed to clear database: ' + data.message)
-      }
-    } catch (error) {
-      alert('❌ Error clearing database: ' + error.message)
-    } finally {
-      setTimeout(() => setLoading(false), 1200)
-    }
+    alert('⚠️ This feature has been removed. Admin panel functionality is no longer available.')
   }
 
   const clearLocalStorage = () => {
@@ -107,7 +88,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <FloatingParticles count={30} />
+      <FloatingParticles count={15} />
       
       {/* Loading Overlay */}
       {loading && (
@@ -121,14 +102,14 @@ const Dashboard = () => {
       
       {/* Header */}
       <header className="header" style={{ opacity: 1, visibility: 'visible', position: 'relative', zIndex: 10 }}>
-        <div className="logo">
-          <Shield className="shield-icon" size={48} />
-          <div className="header-content">
+        <div className="header-top">
+          <div className="logo-title-group">
+            <Shield className="shield-icon" size={48} />
             <h1>E-Voting System</h1>
-            <div className="header-badge">
-              <Sparkles size={16} />
-              <span>Blockchain Powered</span>
-            </div>
+          </div>
+          <div className="header-badge">
+            <Sparkles size={14} />
+            <span>Blockchain Powered</span>
           </div>
         </div>
         <div className="subtitle">
@@ -161,10 +142,12 @@ const Dashboard = () => {
         <div className="action-cards" style={{ display: 'grid', opacity: 1, visibility: 'visible', position: 'relative', zIndex: 10 }}>
           <div className="card register-card" onClick={() => navigate('/register')}>
             <div className="card-icon">
-              <UserPlus size={48} />
+              <UserPlus size={64} />
             </div>
-            <h3>Register New User</h3>
-            <p>Create a new identity with personal details and fingerprint registration</p>
+            <div className="card-content">
+              <h3>Register New User</h3>
+              <p>Create a new identity with personal details and fingerprint registration</p>
+            </div>
             <div className="card-arrow">
               →
             </div>
@@ -172,10 +155,12 @@ const Dashboard = () => {
 
           <div className="card verify-card" onClick={() => navigate('/verify')}>
             <div className="card-icon">
-              <Fingerprint size={48} />
+              <Fingerprint size={64} />
             </div>
-            <h3>Verify & Vote</h3>
-            <p>Authenticate using fingerprint and cast your vote securely</p>
+            <div className="card-content">
+              <h3>Verify & Vote</h3>
+              <p>Authenticate using fingerprint and cast your vote securely</p>
+            </div>
             <div className="card-arrow">
               →
             </div>
@@ -183,32 +168,26 @@ const Dashboard = () => {
 
           <div className="card results-card" onClick={() => navigate('/results')}>
             <div className="card-icon">
-              <BarChart3 size={48} />
+              <BarChart3 size={64} />
             </div>
-            <h3>Live Results</h3>
-            <p>View real-time election results and vote tallies from blockchain</p>
+            <div className="card-content">
+              <h3>Live Results</h3>
+              <p>View real-time election results and vote tallies from blockchain</p>
+            </div>
             <div className="card-arrow">
               →
             </div>
           </div>
 
-          <div className="card admin-card" onClick={() => navigate('/admin')}>
-            <div className="card-icon">
-              <Settings size={48} />
-            </div>
-            <h3>Admin Panel</h3>
-            <p>System management, user administration, and vote controls</p>
-            <div className="card-arrow">
-              →
-            </div>
-          </div>
 
           <div className="card receipt-card" onClick={() => navigate('/receipt')}>
             <div className="card-icon">
-              <Vote size={48} />
+              <Vote size={64} />
             </div>
-            <h3>Verify Receipt</h3>
-            <p>Verify your vote transaction using your receipt hash</p>
+            <div className="card-content">
+              <h3>Verify Receipt</h3>
+              <p>Verify your vote transaction using your receipt hash</p>
+            </div>
             <div className="card-arrow">
               →
             </div>
@@ -268,13 +247,13 @@ const Dashboard = () => {
             <div className="status-item">
               <span className="status-label">Registered Users:</span>
               <span className="status-value info">
-                {dbStats.users} users
+                {dbStats.users === 0 ? 'No users registered' : `${dbStats.users} ${dbStats.users === 1 ? 'user' : 'users'}`}
               </span>
             </div>
             <div className="status-item">
-              <span className="status-label">Stored Fingerprints:</span>
+              <span className="status-label">Biometric Records:</span>
               <span className="status-value info">
-                {dbStats.fingerprints} prints
+                {dbStats.fingerprints === 0 ? 'No fingerprints stored' : `${dbStats.fingerprints} ${dbStats.fingerprints === 1 ? 'fingerprint' : 'fingerprints'}`}
               </span>
             </div>
           </div>

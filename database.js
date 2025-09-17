@@ -12,8 +12,8 @@ class Database {
                 console.error('Error opening database:', err.message);
             } else {
                 console.log('Connected to the SQLite database.');
-                this.initializeTables();
-            }
+        this.initializeTables();
+    }
         });
     }
 
@@ -103,6 +103,25 @@ class Database {
                 console.error('Error creating votes table:', err.message);
             } else {
                 console.log('Votes table created or already exists.');
+            }
+        });
+        
+        // Voting configuration table
+        const createVotingConfigTable = `
+            CREATE TABLE IF NOT EXISTS voting_config (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                config_key TEXT UNIQUE NOT NULL,
+                config_value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        
+        this.db.run(createVotingConfigTable, (err) => {
+            if (err) {
+                console.error('Error creating voting_config table:', err.message);
+            } else {
+                console.log('Voting config table created or already exists.');
+                this.initializeVotingConfig();
             }
         });
     }
@@ -287,6 +306,84 @@ class Database {
         return decrypted;
     }
 
+    // Initialize voting configuration with default values
+    initializeVotingConfig() {
+        const defaultConfigs = [
+            { key: 'voting_status', value: process.env.VOTING_STATUS || 'ACTIVE' },
+            { key: 'voting_start_time', value: process.env.VOTING_START_TIME || '2024-01-01T00:00:00Z' },
+            { key: 'voting_end_time', value: process.env.VOTING_END_TIME || '2024-12-31T23:59:59Z' },
+            { key: 'voting_title', value: 'General Election 2024' },
+            { key: 'voting_description', value: 'Cast your vote for the candidates of your choice' }
+        ];
+        
+        defaultConfigs.forEach(config => {
+            const query = `INSERT OR IGNORE INTO voting_config (config_key, config_value) VALUES (?, ?)`;
+            this.db.run(query, [config.key, config.value], (err) => {
+                if (err) {
+                    console.error(`Error initializing config ${config.key}:`, err.message);
+                }
+            });
+        });
+    }
+    
+    // Get voting configuration
+    getVotingConfig(callback) {
+        const query = `SELECT config_key, config_value FROM voting_config`;
+        
+        this.db.all(query, [], (err, rows) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                const config = {};
+                rows.forEach(row => {
+                    config[row.config_key] = row.config_value;
+                });
+                callback(null, config);
+            }
+        });
+    }
+    
+    // Update voting configuration
+    updateVotingConfig(key, value, callback) {
+        const query = `
+            INSERT OR REPLACE INTO voting_config (config_key, config_value, updated_at)
+            VALUES (?, ?, datetime('now'))
+        `;
+        
+        this.db.run(query, [key, value], function(err) {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, { updated: true, key, value });
+            }
+        });
+    }
+    
+    // Check if voting is currently active
+    isVotingActive(callback) {
+        this.getVotingConfig((err, config) => {
+            if (err) {
+                callback(err, false);
+                return;
+            }
+            
+            const status = config.voting_status || 'INACTIVE';
+            const now = new Date();
+            const startTime = new Date(config.voting_start_time || '2024-01-01T00:00:00Z');
+            const endTime = new Date(config.voting_end_time || '2024-12-31T23:59:59Z');
+            
+            const isActive = status === 'ACTIVE' && now >= startTime && now <= endTime;
+            
+            callback(null, {
+                isActive,
+                status,
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                currentTime: now.toISOString()
+            });
+        });
+    }
+    
     // Close database connection
     close() {
         this.db.close((err) => {

@@ -1,7 +1,7 @@
 /* Vote Decryption Interface Styles */
 .decryption-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4c1d95 100%);
+  background: #6c5ce7;
   position: relative;
   overflow-x: hidden;
 }

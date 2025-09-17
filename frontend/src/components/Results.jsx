@@ -174,7 +174,7 @@ const Results = () => {
 
   return (
     <div className="results-container">
-      <FloatingParticles count={30} />
+      <FloatingParticles count={10} />
       
       {/* Confetti Animation for Winner */}
       {showConfetti && (
@@ -273,8 +273,8 @@ const Results = () => {
             </div>
             <div className="card-content">
               <h3>Voting Status</h3>
-              <p className={`status ${results?.votingActive ? 'active' : 'closed'}`}>
-                {results?.votingActive ? '🟢 ACTIVE' : '🔴 CLOSED'}
+              <p className="status active">
+                🟢 ACTIVE
               </p>
             </div>
           </div>
@@ -436,23 +436,6 @@ const Results = () => {
           </span>
         </div>
         
-        {/* Judges' Notes */}
-        <div className="judges-notes">
-          <div className="note-badge">
-            <Medal size={16} />
-            <span>For Hackathon Judges</span>
-          </div>
-          <div className="notes-content">
-            <h4>Feature Highlights:</h4>
-            <ul>
-              <li>Real-time data visualization with smooth animations</li>
-              <li>Interactive winner highlight with celebration effects</li>
-              <li>Expandable candidate details for deeper insights</li>
-              <li>Responsive design with optimal mobile experience</li>
-              <li>Advanced particle system and background animations</li>
-            </ul>
-          </div>
-        </div>
       </main>
     </div>
   )

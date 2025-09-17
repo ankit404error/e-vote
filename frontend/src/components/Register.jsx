@@ -112,7 +112,7 @@ const Register = () => {
               <Shield size={24} />
               <div className="logo-text">
                 <h1>Digital Voter Registration Portal</h1>
-                <p>Government of India | Election Commission</p>
+                <p style={{color: '#ffffff !important', background: 'none !important', backgroundImage: 'none !important', WebkitBackgroundClip: 'initial !important', WebkitTextFillColor: '#ffffff !important', backgroundClip: 'initial !important'}}>Government of India | Election Commission</p>
               </div>
             </div>
           </div>
@@ -146,8 +146,8 @@ const Register = () => {
           {/* Step 1: Personal Details */}
           {step === 1 && (
             <div className="registration-section">
-              <div className="section-header">
-                <h2>Voter Registration Form</h2>
+            <div className="register-form">
+              <h2 style={{color: '#ffffff !important', background: 'none !important', backgroundImage: 'none !important', WebkitBackgroundClip: 'initial !important', WebkitTextFillColor: '#ffffff !important', backgroundClip: 'initial !important'}}>Register to Vote</h2>
                 <p>Please fill in your personal details accurately as per your official documents</p>
               </div>
 
