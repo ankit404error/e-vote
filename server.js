@@ -408,14 +408,8 @@ app.delete('/api/admin/emergency-delete-all', async (req, res) => {
     }
     
     try {
-        // 1. Reset blockchain votes
-        const accounts = await web3.eth.getAccounts();
-        const adminAccount = accounts[0];
-        
-        await contract.methods.emergencyReset().send({
-            from: adminAccount,
-            gas: 5000000
-        });
+        console.log('⚠️ Emergency deletion: Blockchain reset not implemented');
+        // Note: Blockchain reset would require admin functions in smart contract
         
         // 2. Clear all database tables
         const clearTables = (callback) => {
@@ -482,20 +476,11 @@ app.get('/api/admin/stats', (req, res) => {
 
 // === BLOCKCHAIN VOTING ENDPOINTS ===
 
-// Get all candidates from blockchain
+// Get all candidates from blockchain (master branch pattern)
 app.get('/api/blockchain/candidates', async (req, res) => {
     try {
-        const result = await contract.methods.getAllCandidates().call();
-        const candidates = [];
-        
-        for (let i = 0; i < result.ids.length; i++) {
-            candidates.push({
-                id: parseInt(result.ids[i]),
-                name: result.names[i],
-                party: result.parties[i],
-                voteCount: parseInt(result.voteCounts[i])
-            });
-        }
+        // Use blockchainUtils to get candidates
+        const candidates = await blockchainUtils.getAllCandidates();
         
         res.json({
             success: true,
@@ -605,16 +590,15 @@ app.post('/api/voting/cast', async (req, res) => {
                     
                     res.json({
                         success: true,
-                        message: 'Vote cast successfully using enhanced blockchain',
+                        message: 'Vote cast successfully using master branch blockchain',
                         transactionHash: result.transactionHash,
                         blockNumber: result.blockNumber,
                         gasUsed: result.gasUsed,
                         candidateId: candidateId,
-                        timestamp: new Date().toISOString(),
-                        voterHash: voterHash.substring(0, 10) + '...' // Partial for privacy
+                        timestamp: new Date().toISOString()
                     });
                 } else {
-                    throw new Error('Enhanced blockchain transaction failed');
+                    throw new Error('Master branch blockchain transaction failed');
                 }
                 
             } catch (blockchainError) {
@@ -656,8 +640,8 @@ app.post('/api/voting/verify-receipt', async (req, res) => {
     }
     
     try {
-        // Get transaction details from blockchain using Web3
-        const receipt = await web3.eth.getTransactionReceipt(receiptHash);
+        // Get transaction details from blockchain using blockchainUtils
+        const receipt = await blockchainUtils.getTransactionReceipt(receiptHash);
         
         if (!receipt) {
             return res.status(404).json({
@@ -665,10 +649,6 @@ app.post('/api/voting/verify-receipt', async (req, res) => {
                 message: 'Receipt not found. Please check your transaction hash.'
             });
         }
-        
-        // Get the actual transaction details
-        const transaction = await web3.eth.getTransaction(receiptHash);
-        const block = await web3.eth.getBlock(receipt.blockNumber);
         
         // Try to get voter info from database if available
         let voterInfo = null;
@@ -690,27 +670,21 @@ app.post('/api/voting/verify-receipt', async (req, res) => {
                     };
                 }
                 
-                // Convert blockchain timestamp to milliseconds for JavaScript Date
-                const timestampMs = typeof block.timestamp === 'bigint' ? 
-                    Number(block.timestamp) * 1000 : 
-                    parseInt(block.timestamp) * 1000;
-                
-                // Use database timestamp if available, otherwise blockchain timestamp
+                // Use database timestamp if available, otherwise current timestamp
                 const voteTimestamp = voteRow && voteRow.votedAt ? 
                     new Date(voteRow.votedAt).toISOString() : 
-                    new Date(timestampMs).toISOString();
+                    new Date().toISOString();
                 
                 // Return transaction details WITH voter and candidate info when available
                 res.json({
                     success: true,
                     receipt: {
                         transactionHash: receiptHash,
-                        blockNumber: receipt.blockNumber,
-                        timestamp: voteTimestamp, // Use real vote timestamp
-                        actualBlockTimestamp: timestampMs, // Real blockchain timestamp
-                        gasUsed: receipt.gasUsed,
-                        status: receipt.status === 1 ? 'Success' : 'Failed',
-                        contractAddress: receipt.to,
+                        blockNumber: receipt.blockNumber || 'Unknown',
+                        timestamp: voteTimestamp,
+                        gasUsed: receipt.gasUsed || 'Unknown',
+                        status: receipt.status === 1 ? 'Success' : 'Confirmed',
+                        contractAddress: receipt.to || 'Voting Contract',
                         voterName: voterInfo ? voterInfo.name : 'Verified Voter',
                         voterId: voterInfo ? voterInfo.aadhaarId : null,
                         candidateName: candidateInfo ? candidateInfo.name : null,
@@ -775,41 +749,14 @@ app.get('/api/blockchain/results', async (req, res) => {
 });
 
 // Get encrypted votes metadata from blockchain (admin only)
-// NOTE: This only shows that encrypted votes exist, NOT the vote choices
+// NOTE: Master branch doesn't support encrypted votes - simplified implementation
 app.get('/api/blockchain/encrypted-votes', async (req, res) => {
     try {
-        // In a real system, this would require admin authentication
-        let encryptedVotes;
-        try {
-            encryptedVotes = await contract.methods.getAllEncryptedVotes().call();
-        } catch (methodError) {
-            console.log('Enhanced encrypted votes method not available:', methodError.message);
-            // Return empty array if method doesn't exist
-            return res.json({
-                success: true,
-                encryptedVotes: [],
-                message: 'Enhanced encryption features not available in current contract'
-            });
-        }
-        
-        const votes = [];
-        if (encryptedVotes && encryptedVotes.voteIds) {
-            for (let i = 0; i < encryptedVotes.voteIds.length; i++) {
-                votes.push({
-                    id: parseInt(encryptedVotes.voteIds[i]),
-                    voterHash: '***ANONYMOUS***', // Hide voter identity completely
-                    encryptedChoice: '***ENCRYPTED***', // Hide encrypted choice
-                    timestamp: parseInt(encryptedVotes.timestamps[i]) * 1000,
-                    receiptHash: encryptedVotes.receiptHashes[i],
-                    status: 'Encrypted and Anonymous'
-                });
-            }
-        }
-        
+        // Master branch uses simple voting, no encrypted votes
         res.json({
             success: true,
-            encryptedVotes: votes,
-            message: 'Vote details are encrypted and anonymous for privacy protection'
+            encryptedVotes: [],
+            message: 'Master branch uses transparent voting - no encrypted vote storage'
         });
     } catch (error) {
         console.error('Error fetching encrypted votes metadata:', error);
@@ -823,26 +770,30 @@ app.get('/api/blockchain/encrypted-votes', async (req, res) => {
 // Admin: Reset voting (clear all votes)
 app.post('/api/admin/reset-votes', async (req, res) => {
     try {
-        const accounts = await web3.eth.getAccounts();
-        const adminAccount = accounts[0];
+        console.log('⚠️ Admin reset: Master branch contract doesn\'t support vote reset');
         
-        // Reset votes on blockchain
-        await contract.methods.resetVotes().send({
-            from: adminAccount,
-            gas: 3000000
-        });
-        
-        // Clear voting status in local database
+        // Clear voting status in local database only
         db.db.run('DELETE FROM voting_status', (err) => {
             if (err) {
                 console.error('Error clearing voting status:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to clear database voting status'
+                });
             }
+            
+            db.db.run('DELETE FROM votes', (err) => {
+                if (err) {
+                    console.error('Error clearing votes:', err);
+                }
+                
+                res.json({
+                    success: true,
+                    message: 'Database voting records cleared (blockchain votes remain)'
+                });
+            });
         });
         
-        res.json({
-            success: true,
-            message: 'All votes have been reset'
-        });
     } catch (error) {
         console.error('Error resetting votes:', error);
         res.status(500).json({
@@ -903,6 +854,7 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
+    // In case of port conflict, try another port, e.g., 3001
     console.log(`🚀 E-Voting System running on http://localhost:${PORT}`);
     console.log('📋 Available endpoints:');
     console.log('  • GET  /                           - Main dashboard');
