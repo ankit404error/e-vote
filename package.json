@@ -1,0 +1,25 @@
+{
+  "name": "secure-voting-booth",
+  "version": "1.0.0",
+  "description": "Full-stack blockchain voting system with React, Express, and Solidity",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat run scripts/deploy.js --network sepolia",
+    "deploy-local": "npx hardhat run scripts/deploy.js --network localhost",
+    "test": "npx hardhat test",
+    "node": "npx hardhat node",
+    "install-all": "npm install && cd voting-backend && npm install && cd ../voting-frontend && npm install",
+    "start-backend": "cd voting-backend && npm run dev",
+    "start-frontend": "cd voting-frontend && npm start",
+    "build-frontend": "cd voting-frontend && npm run build"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "dotenv": "^16.3.1"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0"
+  }
+}
