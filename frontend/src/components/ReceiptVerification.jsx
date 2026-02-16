@@ -20,13 +20,18 @@ const ReceiptVerification = () => {
     setLoading(true)
     setError('')
 
+    let cleanHash = receiptHash.trim()
+    if (cleanHash && !cleanHash.startsWith('0x')) {
+      cleanHash = '0x' + cleanHash
+    }
+
     try {
       const response = await fetch('/api/voting/verify-receipt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ receiptHash: receiptHash.trim() })
+        body: JSON.stringify({ receiptHash: cleanHash })
       })
 
       const data = await response.json()

@@ -712,7 +712,7 @@ app.post('/api/voting/cast', async (req, res) => {
 
 // Verify vote receipt using Etherscan (blockchain-only verification)
 app.post('/api/voting/verify-receipt', async (req, res) => {
-    const { receiptHash } = req.body;
+    let { receiptHash } = req.body;
     
     if (!receiptHash) {
         return res.status(400).json({
@@ -720,12 +720,73 @@ app.post('/api/voting/verify-receipt', async (req, res) => {
             message: 'Receipt hash is required'
         });
     }
+
+    // specific cleanup for receipt hash
+    receiptHash = receiptHash.trim();
+    if (!receiptHash.startsWith('0x')) {
+        receiptHash = '0x' + receiptHash;
+    }
     
-    // Validate transaction hash format
+    // Check if this is a db-tracked vote (fallback mechanism)
+    if (receiptHash.startsWith('db_tracked_vote_')) {
+        console.log(`🔍 Verifying database-tracked vote: ${receiptHash}`);
+        
+        db.getVoteByTransactionHash(receiptHash, (err, voteRecord) => {
+            if (err) {
+                console.error('Database error verifying vote:', err);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Internal server error during verification'
+                });
+            }
+            
+            if (!voteRecord) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Vote record not found in database',
+                    etherscanUrl: null
+                });
+            }
+            
+            return res.json({
+                success: true,
+                receipt: {
+                    transactionHash: voteRecord.transactionHash,
+                    blockNumber: voteRecord.blockNumber || 0,
+                    blockHash: 'simulated_block_hash',
+                    timestamp: voteRecord.votedAt,
+                    gasUsed: '0',
+                    gasPrice: '0',
+                    status: 'Success',
+                    contractAddress: 'Simulated_Contract',
+                    fromAddress: 'Simulated_User_Address',
+                    etherscanUrl: null, // No Etherscan URL for DB votes
+                    verified: true,
+                    source: 'Database Verification (Off-chain)',
+                    
+                    // Privacy-protected information
+                    voterName: 'Verified Voter', 
+                    voterId: '****-****-****', 
+                    candidateName: 'Vote Recorded', 
+                    candidateParty: 'Privacy Protected',
+                     
+                    securityStatus: {
+                        blockchainConfirmed: false, // It's db tracked
+                        immutableRecord: true,
+                        etherscanVerified: false,
+                        privacyProtected: true
+                    }
+                }
+            });
+        });
+        return; // Return early, async callback handles response
+    }
+
+    // Validate transaction hash format for blockchain votes
     if (!receiptHash.match(/^0x[a-fA-F0-9]{64}$/)) {
         return res.status(400).json({
             success: false,
-            message: 'Invalid transaction hash format. Must be 64-character hex string starting with 0x'
+            message: `Invalid transaction hash format. Expected 66 characters (0x + 64 hex), received ${receiptHash.length}. ensure you copied the full hash.`
         });
     }
     

@@ -1,0 +1,14 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contractName": "SecureVoting",
+  "contractAddress": "0x13C276c27a814CD4C7A7b6F0C34Fbe463596635a",
+  "deployerAddress": "0xFcE321EA78A7b82C4791Ce4Ad0cF4359e016DbA8",
+  "transactionHash": "0x6ebfaee14face653eb4c55deb5d925a94dc609a63ed3e25b6d0193724bbcf1e3",
+  "timestamp": "2025-09-18T07:44:17.770Z",
+  "etherscanUrl": "https://sepolia.etherscan.io/address/0x13C276c27a814CD4C7A7b6F0C34Fbe463596635a",
+  "blockNumber": 9227313,
+  "gasUsed": "444869",
+  "gasPrice": "1000063",
+  "deploymentCost": "0.000000444897026747"
+}

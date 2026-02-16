@@ -253,6 +253,24 @@ class Database {
         });
     }
 
+    // Get vote by transaction hash
+    getVoteByTransactionHash(transactionHash, callback) {
+        const query = `
+            SELECT v.*, u.name as voterName, u.unique_number as voterId
+            FROM votes v
+            JOIN users u ON v.userId = u.id
+            WHERE v.transactionHash = ?
+        `;
+        
+        this.db.get(query, [transactionHash], (err, row) => {
+            if (err) {
+                callback(err, null);
+            } else {
+                callback(null, row);
+            }
+        });
+    }
+
     // Store vote details for receipt verification
     storeVoteDetails(voteData, callback) {
         const { userId, candidateId, candidateName, candidateParty, transactionHash, blockNumber } = voteData;

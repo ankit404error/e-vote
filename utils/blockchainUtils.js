@@ -807,11 +807,9 @@ const blockchainUtils = {
       };
       
     } catch (error) {
-      console.error('❌ Main wallet voting failed:', error);
-      
       // If main wallet already voted, that's expected - we track users in DB
       if (error.message.includes('already voted')) {
-        console.log('✅ Main wallet vote limitation reached - this is expected for multi-user voting');
+        console.log('⚠️ Main wallet already voted (expected for single-wallet demo) - switching to database tracking');
         
         // Return a simulated successful response for database tracking
         // The actual vote counting should be done in the database layer
